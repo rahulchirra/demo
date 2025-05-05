@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FuelFix - Emergency Fuel Assistance</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @keyframes pour {
+            0% { transform: translateY(-20px) rotate(0deg); opacity: 0; }
+            50% { transform: translateY(0) rotate(10deg); opacity: 1; }
+            100% { transform: translateY(20px) rotate(0deg); opacity: 0; }
+        }
+        
+        .fuel-pour {
+            animation: pour 1.5s ease-in-out infinite;
+        }
+        
+        .sos-pulse {
+            animation: pulse 1.5s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(255, 0, 0, 0.7); }
+            70% { box-shadow: 0 0 0 20px rgba(255, 0, 0, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(255, 0, 0, 0); }
+        }
+        
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: #FFF9E6;
+        }
+        
+        .map-container {
+            height: 300px;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .service-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+        }
+        
+        .timeline-item:not(:last-child)::after {
+            content: "";
+            position: absolute;
+            left: 24px;
+            top: 40px;
+            height: calc(100% - 40px);
+            width: 2px;
+            background-color: #FFD700;
+        }
+        
+        .map-marker {
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            background-color: #FF0000;
+            border-radius: 50% 50% 50% 0;
+            transform: rotate(-45deg);
+        }
+        
+        .map-marker::after {
+            content: "";
+            position: absolute;
+            width: 14px;
+            height: 14px;
+            background-color: #FFF;
+            border-radius: 50%;
+            top: 3px;
+            left: 3px;
+        }
+        
+        .provider-marker {
+            position: absolute;
+            width: 16px;
+            height: 16px;
+            background-color: #FFD700;
+            border-radius: 50%;
+            border: 2px solid #FFF;
+        }
+        
+        .route-line {
+            position: absolute;
+            background-color: #FFD700;
+            height: 3px;
+            transform-origin: left center;
+        }
+    </style>
+</head>
+<body class="min-h-screen bg-[#FFF9E6] text-gray-800">
+    <!-- Navigation -->
+    <nav class="bg-white shadow-sm py-4 px-6 flex justify-between items-center sticky top-0 z-50">
+        <div class="flex items-center">
+            <div class="w-10 h-10 rounded-full bg-[#FFD700] flex items-center justify-center mr-3">
+                <i class="fas fa-gas-pump text-white text-lg"></i>
+            </div>
+            <h1 class="text-xl font-bold">FuelFix</h1>
+        </div>
+        <div class="hidden md:flex space-x-6">
+            <a href="#features" class="hover:text-[#FFD700] transition">Features</a>
+            <a href="#how-it-works" class="hover:text-[#FFD700] transition">How It Works</a>
+            <a href="#live-tracking" class="hover:text-[#FFD700] transition">Live Tracking</a>
+            <a href="#providers" class="hover:text-[#FFD700] transition">Providers</a>
+            <a href="#faq" class="hover:text-[#FFD700] transition">FAQ</a>
+        </div>
+        <button class="md:hidden">
+            <i class="fas fa-bars text-xl"></i>
+        </button>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="py-16 px-6 md:px-12 lg:px-24 flex flex-col md:flex-row items-center">
+        <div class="md:w-1/2 mb-10 md:mb-0">
+            <h1 class="text-4xl md:text-5xl font-bold mb-6">Never Get Stranded Again</h1>
+            <p class="text-lg mb-8 text-gray-600">One-tap emergency fuel assistance when you need it most. Connecting you with verified providers across India.</p>
+            <div class="flex space-x-4">
+                <button id="sosTrigger" class="bg-red-600 hover:bg-red-700 text-white font-semibold py-3 px-8 rounded-full transition flex items-center justify-center">
+                    <i class="fas fa-bolt mr-2"></i> SOS Emergency
+                </button>
+            </div>
+        </div>
+        <div class="md:w-1/2 flex justify-center relative">
+            <div class="relative">
+                <div class="w-full h-80 bg-white rounded-3xl shadow-xl overflow-hidden">
+                    <div class="map-container w-full h-full">
+                        <div class="map-marker" style="top: 50%; left: 50%;"></div>
+                        <div class="provider-marker" style="top: 30%; left: 70%;"></div>
+                        <div class="route-line" style="width: 100px; top: 50%; left: 50%; transform: rotate(30deg);"></div>
+                        <div class="absolute bottom-4 left-4 bg-white p-2 rounded-lg shadow-md">
+                            <div class="flex items-center">
+                                <div class="w-3 h-3 rounded-full bg-red-600 mr-2"></div>
+                                <span class="text-xs">Your Location</span>
+                            </div>
+                            <div class="flex items-center mt-1">
+                                <div class="w-3 h-3 rounded-full bg-[#FFD700] mr-2"></div>
+                                <span class="text-xs">Provider</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="absolute -bottom-6 -right-6 w-32 h-32 bg-[#FFD700] rounded-full opacity-20"></div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section id="features" class="py-16 px-6 md:px-12 lg:px-24 bg-white">
+        <div class="text-center mb-16">
+            <h2 class="text-3xl font-bold mb-4">Why Choose FuelFix?</h2>
+            <p class="text-gray-600 max-w-2xl mx-auto">Designed for reliability and speed when you need it most</p>
+        </div>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+            <div class="bg-[#FFF9E6] p-6 rounded-xl service-card transition duration-300">
+                <div class="w-14 h-14 rounded-full bg-[#FFD700] flex items-center justify-center mb-4">
+                    <i class="fas fa-bolt text-white text-xl"></i>
+                </div>
+                <h3 class="font-bold text-lg mb-2">Instant Response</h3>
+                <p class="text-gray-600">Get connected to the nearest provider in under 2 minutes</p>
+            </div>
+            
+            <div class="bg-[#FFF9E6] p-6 rounded-xl service-card transition duration-300">
+                <div class="w-14 h-14 rounded-full bg-[#FFD700] flex items-center justify-center mb-4">
+                    <i class="fas fa-shield-alt text-white text-xl"></i>
+                </div>
+                <h3 class="font-bold text-lg mb-2">Verified Providers</h3>
+                <p class="text-gray-600">All service providers are background-checked and rated</p>
+            </div>
+            
+            <div class="bg-[#FFF9E6] p-6 rounded-xl service-card transition duration-300">
+                <div class="w-14 h-14 rounded-full bg-[#FFD700] flex items-center justify-center mb-4">
+                    <i class="fas fa-rupee-sign text-white text-xl"></i>
+                </div>
+                <h3 class="font-bold text-lg mb-2">Transparent Pricing</h3>
+                <p class="text-gray-600">Know the exact cost before confirming your request</p>
+            </div>
+            
+            <div class="bg-[#FFF9E6] p-6 rounded-xl service-card transition duration-300">
+                <div class="w-14 h-14 rounded-full bg-[#FFD700] flex items-center justify-center mb-4">
+                    <i class="fas fa-headset text-white text-xl"></i>
+                </div>
+                <h3 class="font-bold text-lg mb-2">24/7 Support</h3>
+                <p class="text-gray-600">Our team is always available to assist you</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- How It Works Section -->
+    <section id="how-it-works" class="py-16 px-6 md:px-12 lg:px-24 bg-[#FFF9E6]">
+        <div class="text-center mb-16">
+            <h2 class="text-3xl font-bold mb-4">How FuelFix Works</h2>
+            <p class="text-gray-600 max-w-2xl mx-auto">Get help in just three simple steps</p>
+        </div>
+        
+        <div class="max-w-3xl mx-auto">
+            <div class="relative timeline-item mb-12 pl-16">
+                <div class="absolute left-0 top-0 w-12 h-12 rounded-full bg-[#FFD700] flex items-center justify-center">
+                    <span class="text-white font-bold">1</span>
+                </div>
+                <h3 class="font-bold text-xl mb-2">Request Assistance</h3>
+                <p class="text-gray-600">Tap the SOS button when you need fuel or mechanical help. Your location is automatically detected.</p>
+            </div>
+            
+            <div class="relative timeline-item mb-12 pl-16">
+                <div class="absolute left-0 top-0 w-12 h-12 rounded-full bg-[#FFD700] flex items-center justify-center">
+                    <span class="text-white font-bold">2</span>
+                </div>
+                <h3 class="font-bold text-xl mb-2">Get Matched</h3>
+                <p class="text-gray-600">Our system finds the nearest available provider and connects you instantly.</p>
+            </div>
+            
+            <div class="relative timeline-item pl-16">
+                <div class="absolute left-0 top-0 w-12 h-12 rounded-full bg-[#FFD700] flex items-center justify-center">
+                    <span class="text-white font-bold">3</span>
+                </div>
+                <h3 class="font-bold text-xl mb-2">Receive Help</h3>
+                <p class="text-gray-600">Track your provider's arrival in real-time and make secure payment in the app.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Live Tracking Section -->
+    <section id="live-tracking" class="py-16 px-6 md:px-12 lg:px-24 bg-white">
+        <div class="flex flex-col md:flex-row items-center">
+            <div class="md:w-1/2 mb-10 md:mb-0 md:pr-10">
+                <h2 class="text-3xl font-bold mb-6">Real-Time Tracking</h2>
+                <p class="text-gray-600 mb-6">Watch as your assistance provider comes to you with our live tracking feature. Know exactly when help will arrive.</p>
+                <div class="bg-[#FFF9E6] p-6 rounded-lg mb-6">
+                    <div class="flex items-center">
+                        <div class="w-10 h-10 rounded-full bg-[#FFD700] flex items-center justify-center mr-4">
+                            <i class="fas fa-gas-pump text-white"></i>
+                        </div>
+                        <div>
+                            <h4 class="font-bold">Fuel Provider</h4>
+                            <p class="text-sm text-gray-600">ETA: 12 minutes</p>
+                        </div>
+                    </div>
+                    <div class="mt-4 flex justify-between items-center">
+                        <div class="flex items-center">
+                            <i class="fas fa-star text-[#FFD700] mr-1"></i>
+                            <span class="font-bold">4.8</span>
+                            <span class="text-gray-500 text-sm ml-1">(128 reviews)</span>
+                        </div>
+                        <div class="flex space-x-2">
+                            <button class="w-8 h-8 rounded-full bg-[#FFD700] text-white flex items-center justify-center">
+                                <i class="fas fa-phone"></i>
+                            </button>
+                            <button class="w-8 h-8 rounded-full bg-[#FFD700] text-white flex items-center justify-center">
+                                <i class="fas fa-comment"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <button id="trackingSOS" class="w-full bg-red-600 hover:bg-red-700 text-white font-semibold py-3 px-6 rounded-full transition flex items-center justify-center">
+                    <i class="fas fa-bolt mr-2"></i> EMERGENCY SOS
+                </button>
+            </div>
+            <div class="md:w-1/2">
+                <div class="map-container rounded-xl shadow-lg relative">
+                    <div class="map-marker" style="top: 50%; left: 30%;"></div>
+                    <div class="provider-marker" style="top: 60%; left: 70%;"></div>
+                    <div class="route-line" style="width: 150px; top: 50%; left: 30%; transform: rotate(45deg);"></div>
+                    <div class="absolute bottom-4 left-4 bg-white p-2 rounded-lg shadow-md">
+                        <div class="flex items-center">
+                            <div class="w-3 h-3 rounded-full bg-red-600 mr-2"></div>
+                            <span class="text-xs">Your Location</span>
+                        </div>
+                        <div class="flex items-center mt-1">
+                            <div class="w-3 h-3 rounded-full bg-[#FFD700] mr-2"></div>
+                            <span class="text-xs">Provider (ETA: 12 min)</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Providers Section -->
+    <section id="providers" class="py-16 px-6 md:px-12 lg:px-24 bg-[#FFF9E6]">
+        <div class="text-center mb-16">
+            <h2 class="text-3xl font-bold mb-4">Our Trusted Providers</h2>
+            <p class="text-gray-600 max-w-2xl mx-auto">Partnering with India's leading fuel and roadside assistance providers</p>
+        </div>
+        
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-8">
+            <div class="bg-white p-6 rounded-xl flex flex-col items-center justify-center h-40">
+                <i class="fas fa-gas-pump text-4xl text-[#FFD700] mb-4"></i>
+                <h4 class="font-bold">Fuel Stations</h4>
+                <p class="text-sm text-gray-600 mt-1">24/7 Availability</p>
+            </div>
+            
+            <div class="bg-white p-6 rounded-xl flex flex-col items-center justify-center h-40">
+                <i class="fas fa-car text-4xl text-[#FFD700] mb-4"></i>
+                <h4 class="font-bold">Mechanics</h4>
+                <p class="text-sm text-gray-600 mt-1">Certified Experts</p>
+            </div>
+            
+            <div class="bg-white p-6 rounded-xl flex flex-col items-center justify-center h-40">
+                <i class="fas fa-truck text-4xl text-[#FFD700] mb-4"></i>
+                <h4 class="font-bold">Mobile Units</h4>
+                <p class="text-sm text-gray-600 mt-1">On-the-Go Service</p>
+            </div>
+            
+            <div class="bg-white p-6 rounded-xl flex flex-col items-center justify-center h-40">
+                <i class="fas fa-shield-alt text-4xl text-[#FFD700] mb-4"></i>
+                <h4 class="font-bold">Safety Patrol</h4>
+                <p class="text-sm text-gray-600 mt-1">Verified Partners</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- FAQ Section -->
+    <section id="faq" class="py-16 px-6 md:px-12 lg:px-24 bg-white">
+        <div class="text-center mb-16">
+            <h2 class="text-3xl font-bold mb-4">Frequently Asked Questions</h2>
+            <p class="text-gray-600 max-w-2xl mx-auto">Find answers to common questions about FuelFix</p>
+        </div>
+        
+        <div class="max-w-3xl mx-auto space-y-4">
+            <div class="border-b border-gray-200 pb-4">
+                <button class="flex justify-between items-center w-full text-left font-semibold">
+                    <span>How quickly can I get assistance?</span>
+                    <i class="fas fa-chevron-down text-[#FFD700]"></i>
+                </button>
+                <div class="mt-2 text-gray-600 hidden">
+                    <p>Most requests are fulfilled within 30 minutes in urban areas. Response times may vary based on your location and provider availability.</p>
+                </div>
+            </div>
+            
+            <div class="border-b border-gray-200 pb-4">
+                <button class="flex justify-between items-center w-full text-left font-semibold">
+                    <span>What payment methods are accepted?</span>
+                    <i class="fas fa-chevron-down text-[#FFD700]"></i>
+                </button>
+                <div class="mt-2 text-gray-600 hidden">
+                    <p>We accept all major credit/debit cards, UPI payments, and popular mobile wallets. Cash payments are also accepted but not recommended for safety.</p>
+                </div>
+            </div>
+            
+            <div class="border-b border-gray-200 pb-4">
+                <button class="flex justify-between items-center w-full text-left font-semibold">
+                    <span>Is there a minimum fuel quantity?</span>
+                    <i class="fas fa-chevron-down text-[#FFD700]"></i>
+                </button>
+                <div class="mt-2 text-gray-600 hidden">
+                    <p>The minimum fuel delivery is 5 liters. This ensures the service is economically viable for our providers while meeting your emergency needs.</p>
+                </div>
+            </div>
+            
+            <div class="border-b border-gray-200 pb-4">
+                <button class="flex justify-between items-center w-full text-left font-semibold">
+                    <span>How are service providers rated?</span>
+                    <i class="fas fa-chevron-down text-[#FFD700]"></i>
+                </button>
+                <div class="mt-2 text-gray-600 hidden">
+                    <p>Providers are rated by users on response time, professionalism, and service quality. Only providers maintaining a 4+ star rating remain on our platform.</p>
+                </div>
+            </div>
+            
+            <div class="border-b border-gray-200 pb-4">
+                <button class="flex justify-between items-center w-full text-left font-semibold">
+                    <span>What areas do you currently serve?</span>
+                    <i class="fas fa-chevron-down text-[#FFD700]"></i>
+                </button>
+                <div class="mt-2 text-gray-600 hidden">
+                    <p>We currently operate in all major Indian cities including Delhi, Mumbai, Bangalore, Hyderabad, Chennai, and Kolkata. We're expanding to more locations every month.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA Section -->
+    <section class="py-16 px-6 md:px-12 lg:px-24 bg-[#FFD700] text-white">
+        <div class="max-w-4xl mx-auto text-center">
+            <h2 class="text-3xl font-bold mb-6">Ready When You Are</h2>
+            <p class="text-xl mb-8">FuelFix is your reliable partner for emergency fuel assistance across India.</p>
+            <button id="finalSOS" class="bg-red-600 hover:bg-red-700 text-white font-semibold py-4 px-12 rounded-full transition flex items-center justify-center mx-auto">
+                <i class="fas fa-bolt mr-2"></i> TRY EMERGENCY DEMO
+            </button>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="bg-gray-900 text-white py-12 px-6 md:px-12 lg:px-24">
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
+            <div>
+                <div class="flex items-center mb-4">
+                    <div class="w-10 h-10 rounded-full bg-[#FFD700] flex items-center justify-center mr-3">
+                        <i class="fas fa-gas-pump text-white text-lg"></i>
+                    </div>
+                    <h3 class="text-xl font-bold">FuelFix</h3>
+                </div>
+                <p class="text-gray-400">Emergency fuel assistance when you need it most.</p>
+            </div>
+            
+            <div>
+                <h4 class="font-bold mb-4">Company</h4>
+                <ul class="space-y-2">
+                    <li><a href="#" class="text-gray-400 hover:text-white transition">About Us</a></li>
+                    <li><a href="#" class="text-gray-400 hover:text-white transition">Careers</a></li>
+                    <li><a href="#" class="text-gray-400 hover:text-white transition">Blog</a></li>
+                    <li><a href="#" class="text-gray-400 hover:text-white transition">Press</a></li>
+                </ul>
+            </div>
+            
+            <div>
+                <h4 class="font-bold mb-4">Support</h4>
+                <ul class="space-y-2">
+                    <li><a href="#" class="text-gray-400 hover:text-white transition">Help Center</a></li>
+                    <li><a href="#" class="text-gray-400 hover:text-white transition">Safety</a></li>
+                    <li><a href="#" class="text-gray-400 hover:text-white transition">Community</a></li>
+                    <li><a href="#" class="text-gray-400 hover:text-white transition">Contact Us</a></li>
+                </ul>
+            </div>
+            
+            <div>
+                <h4 class="font-bold mb-4">Legal</h4>
+                <ul class="space-y-2">
+                    <li><a href="#" class="text-gray-400 hover:text-white transition">Terms of Service</a></li>
+                    <li><a href="#" class="text-gray-400 hover:text-white transition">Privacy Policy</a></li>
+                    <li><a href="#" class="text-gray-400 hover:text-white transition">Cookie Policy</a></li>
+                </ul>
+            </div>
+        </div>
+        
+        <div class="border-t border-gray-800 mt-12 pt-8 flex flex-col md:flex-row justify-between items-center">
+            <p class="text-gray-400 mb-4 md:mb-0">© 2023 FuelFix. All rights reserved.</p>
+            <div class="flex space-x-6">
+                <a href="#" class="text-gray-400 hover:text-white transition"><i class="fab fa-facebook-f"></i></a>
+                <a href="#" class="text-gray-400 hover:text-white transition"><i class="fab fa-twitter"></i></a>
+                <a href="#" class="text-gray-400 hover:text-white transition"><i class="fab fa-instagram"></i></a>
+                <a href="#" class="text-gray-400 hover:text-white transition"><i class="fab fa-linkedin-in"></i></a>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // SOS Button Animation
+        function triggerSOS() {
+            // Show success toast
+            const toast = document.createElement('div');
+            toast.className = 'fixed bottom-8 left-1/2 transform -translate-x-1/2 bg-green-500 text-white px-6 py-3 rounded-full shadow-lg flex items-center';
+            toast.innerHTML = `
+                <i class="fas fa-check-circle mr-2"></i>
+                <span>Emergency request sent! Connecting you to nearest provider...</span>
+            `;
+            document.body.appendChild(toast);
+            
+            // Animate provider marker moving toward user
+            const providerMarker = document.querySelector('.provider-marker');
+            let pos = 70;
+            const moveInterval = setInterval(() => {
+                pos -= 0.5;
+                providerMarker.style.left = pos + '%';
+                
+                if (pos <= 30) {
+                    clearInterval(moveInterval);
+                    toast.innerHTML = `
+                        <i class="fas fa-check-circle mr-2"></i>
+                        <span>Provider has arrived! Help is here.</span>
+                    `;
+                    
+                    setTimeout(() => {
+                        toast.remove();
+                    }, 3000);
+                }
+            }, 50);
+            
+            setTimeout(() => {
+                toast.remove();
+            }, 10000);
+        }
+        
+        document.getElementById('sosTrigger').addEventListener('click', triggerSOS);
+        document.getElementById('trackingSOS').addEventListener('click', triggerSOS);
+        document.getElementById('finalSOS').addEventListener('click', triggerSOS);
+        
+        // FAQ Accordion
+        const faqButtons = document.querySelectorAll('#faq button');
+        faqButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                const answer = button.nextElementSibling;
+                const icon = button.querySelector('i');
+                
+                if (answer.classList.contains('hidden')) {
+                    answer.classList.remove('hidden');
+                    icon.classList.remove('fa-chevron-down');
+                    icon.classList.add('fa-chevron-up');
+                } else {
+                    answer.classList.add('hidden');
+                    icon.classList.remove('fa-chevron-up');
+                    icon.classList.add('fa-chevron-down');
+                }
+            });
+        });
+        
+        // Smooth scrolling for navigation
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                
+                document.querySelector(this.getAttribute('href')).scrollIntoView({
+                    behavior: 'smooth'
+                });
+            });
+        });
+        
+        // Simulate live tracking movement
+        setInterval(() => {
+            const routeLine = document.querySelector('.route-line');
+            const currentRotation = parseInt(routeLine.style.transform.replace('rotate(', '').replace('deg)', '')) || 45;
+            const newRotation = (currentRotation + 0.5) % 360;
+            routeLine.style.transform = `rotate(${newRotation}deg)`;
+        }, 100);
+    </script>
+</body>
+</html>
